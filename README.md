@@ -51,20 +51,32 @@ cinefind/
 ### Prerequisites
 
 - Node.js 18+ (if using React Native / Expo)
-- A [Watchmode API key](https://api.watchmode.com/) — free tier available
+- Watchmode API access — keys are already provisioned for this project (see team password manager)
 - A Firebase or Supabase project set up with Auth and a database
+
+### Watchmode API
+
+This project uses the [Watchmode Streaming Availability API](https://api.watchmode.com/) — over 200 streaming services across 50+ countries, with iOS/Android deeplinks and episode-level availability data.
+
+- Base URL: `https://api.watchmode.com/v1/`
+- Docs: [https://api.watchmode.com/docs](https://api.watchmode.com/docs)
+- Two API keys are provisioned for this project — store them as environment variables (see below)
 
 ### Environment variables
 
 Copy `.env.example` to `.env` and fill in your keys:
 
 ```env
-WATCHMODE_API_KEY=your_key_here
-SUPABASE_URL=https://your-project.supabase.co      # or Firebase config
+# Watchmode API — two keys provisioned (use KEY_1 for primary, KEY_2 as fallback)
+WATCHMODE_API_KEY_1=your_primary_key_here
+WATCHMODE_API_KEY_2=your_fallback_key_here
+
+# Supabase (or swap for Firebase config)
+SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your_anon_key_here
 ```
 
-> Never commit `.env` to version control. It is listed in `.gitignore`.
+> Never commit `.env` to version control. It is listed in `.gitignore`. Keys are shared via the team password manager only — never in chat, email, or code comments.
 
 ### Install & run
 

@@ -58,21 +58,39 @@ When writing backend-touching code:
 
 ## Watchmode API
 
-- Base URL: `https://api.watchmode.com/v1/`
-- API key is stored in `.env` as `WATCHMODE_API_KEY` — never hardcode it
-- All Watchmode calls must go through `src/services/watchmode.js` — do not call the API directly from components or screens
-- Key endpoints to use:
+- **Docs**: [https://api.watchmode.com/docs](https://api.watchmode.com/docs)
+- **Base URL**: `https://api.watchmode.com/v1/`
+- **Coverage**: 200+ streaming services, 50+ countries, iOS/Android deeplinks, episode-level data
+- Two API keys are provisioned for this project. Read them from `.env` — never hardcode them:
 
-| Purpose | Endpoint |
-|---|---|
-| Search titles | `GET /search/?search_field=name&search_value={query}` |
-| Title details | `GET /title/{id}/details/` |
-| Streaming sources | `GET /title/{id}/sources/` |
-| List titles (trending) | `GET /list-titles/` |
+```env
+WATCHMODE_API_KEY_1=   # primary key
+WATCHMODE_API_KEY_2=   # fallback key — use if primary hits rate limits
+```
 
-- Cache search results and streaming sources — they don't change often and Watchmode has rate limits on the free tier
-- Always handle the case where streaming sources are empty (show "Not currently available to stream")
-- Country filtering: pass `region=GB` (or user's region) to `/sources/` where applicable
+- All Watchmode calls must go through `src/services/watchmode.js` — never call the API directly from components or screens
+- Append the key as a query param: `?apiKey=${process.env.WATCHMODE_API_KEY_1}`
+- If a request fails with 429 (rate limit), automatically retry once with `WATCHMODE_API_KEY_2`
+
+### Key endpoints
+
+| Purpose | Endpoint | Notes |
+|---|---|---|
+| Search titles | `GET /v1/search/?search_field=name&search_value={query}&types=movie,tv_movie,tv_series` | Add `&types=` to filter by content type |
+| Title details | `GET /v1/title/{id}/details/` | Returns metadata: title, year, genre, synopsis, poster, ratings |
+| Streaming sources | `GET /v1/title/{id}/sources/` | Returns all streaming, rental, and purchase options |
+| List titles (trending) | `GET /v1/list-titles/` | Use for home screen trending feed |
+| All streaming services | `GET /v1/sources/` | Reference list of all supported platforms and their IDs |
+| Episode sources | `GET /v1/title/{id}/episodes/` | Episode-level streaming data for TV shows |
+
+### Watchmode integration rules
+
+- Cache search results for 1 hour and streaming sources for 24 hours — they change infrequently and the free tier has rate limits
+- Always handle empty sources gracefully — show "Not currently available to stream" when the sources array is empty
+- Country filtering: pass `&region=PT` (or the user's detected region) to `/sources/` calls — Watchmode supports 50+ countries
+- Use the `deeplink_ios` and `deeplink_android` fields from sources for platform links — Apple rejects apps that link to streaming websites instead of native apps
+- The `source_id` field in sources maps to platform logos — maintain a local logo asset map keyed by `source_id`
+- For the home screen trending feed, call `/v1/list-titles/` with `&sort_by=popularity_desc`
 
 ---
 
