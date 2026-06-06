@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CineFind</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand">CineFind</div>
+      <nav class="tabs" role="navigation" aria-label="Main navigation">
+        <button class="tab-button active" data-view="home">Home</button>
+        <button class="tab-button" data-view="search">Search</button>
+        <button class="tab-button" data-view="lists">My Lists</button>
+        <button class="tab-button" data-view="profile">Profile</button>
+      </nav>
+    </header>
+
+    <div id="appStatus" class="app-status" aria-live="polite"></div>
+
+    <main class="app-main">
+      <section id="homeView" class="view active">
+        <div class="hero">
+          <div>
+            <h1>Discover movies and TV shows.</h1>
+            <p>Search, save, and track what you want to watch next.</p>
+          </div>
+          <div class="search-card">
+            <input id="homeSearchInput" type="search" placeholder="Search titles..." aria-label="Search titles" />
+            <button id="homeSearchButton" class="primary-button">Search</button>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <h2>Trending now</h2>
+          <button id="refreshTrending" class="secondary-button">Refresh</button>
+        </div>
+        <div id="trendingGrid" class="card-grid"></div>
+      </section>
+
+      <section id="searchView" class="view">
+        <div class="search-bar">
+          <input id="searchInput" type="search" placeholder="Search for a movie or series" aria-label="Search for a movie or series" />
+          <button id="searchButton" class="primary-button">Search</button>
+        </div>
+        <div id="searchStatus" class="status-text"></div>
+        <div id="searchResults" class="card-grid"></div>
+      </section>
+
+      <section id="detailView" class="view">
+        <button id="detailBack" class="link-button">← Back</button>
+        <div id="detailCard" class="detail-card"></div>
+      </section>
+
+      <section id="listsView" class="view">
+        <div class="lists-switch">
+          <button id="watchlistTab" class="secondary-button active">Watch List</button>
+          <button id="watchedTab" class="secondary-button">Watched</button>
+        </div>
+        <div id="listItems" class="card-grid"></div>
+      </section>
+
+      <section id="profileView" class="view">
+        <div id="profileContent"></div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -153,6 +153,14 @@ Full user stories are documented in [CineFind_User_Stories.md](./CineFind_User_S
 
 ---
 
+## Static Web App
+
+A simple HTML/CSS/JavaScript version of CineFind has been added in the repository root.
+
+- Open `index.html` in the browser to run the app locally.
+- Copy `config.example.js` to `config.js` and provide your Watchmode API keys if you want live streaming data.
+- Lists, reviews, and login state are stored locally in the browser.
+
 ## License
 
 MIT
