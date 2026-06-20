@@ -280,19 +280,7 @@ async function searchTitles(query) {
   setStatus('Searching titles...');
   try {
     const data = await fetchWatchmode(`/search/?search_field=name&search_value=${encodeURIComponent(query)}&types=movie,tv_movie,tv_series`);
-    const results = await Promise.all((data.title_results || data.results || []).slice(0, SEARCH_RESULT_LIMIT).map(async (item) => {
-      const normalized = normalizeTitle(item);
-      const [details, sources] = await Promise.all([
-        fetchTitleDetails(item.id, normalized),
-        fetchSources(item.id),
-      ]);
-
-      return {
-        ...normalized,
-        ...details,
-        sources,
-      };
-    }));
+    const results = (data.title_results || data.results || []).slice(0, SEARCH_RESULT_LIMIT).map((item) => normalizeTitle(item));
 
     clearStatus();
     return results.length ? results : SAMPLE_TITLES.filter((item) => item.name.toLowerCase().includes(query.toLowerCase()));
