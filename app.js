@@ -45,6 +45,9 @@ const STREAMING_SAMPLES = [
   { name: 'Amazon', type: 'buy' },
 ];
 
+const SEARCH_RESULT_LIMIT = 12;
+const STREAMING_RESULT_LIMIT = 4;
+
 const state = {
   currentUser: null,
   activeView: 'home',
@@ -133,6 +136,31 @@ function formatStars(value) {
   return Array.from({ length: 5 }, (_, index) => (index < value ? '★' : '☆')).join('');
 }
 
+function buildPosterUrl(name) {
+  return `https://via.placeholder.com/400x600?text=${encodeURIComponent(name || 'CineFind')}`;
+}
+
+function normalizeTitle(item) {
+  const name = item.name || item.title || item.title_name || 'Untitled';
+
+  return {
+    id: item.id,
+    name,
+    poster:
+      item.poster ||
+      item.poster_url ||
+      item.image ||
+      item.image_url ||
+      item.backdrop ||
+      buildPosterUrl(name),
+    type: item.type || 'movie',
+    year: item.release_year || item.year || 'TBD',
+    rating: item.user_rating || item.rating || 4,
+    genres: item.genres || [],
+    overview: item.overview || item.plot_overview || '',
+  };
+}
+
 function createCard(item, options = {}) {
   const card = document.createElement('article');
   card.className = 'card';
@@ -162,7 +190,8 @@ function createCard(item, options = {}) {
 
   const streaming = document.createElement('div');
   streaming.className = 'streaming-list';
-  (options.sources || STREAMING_SAMPLES).slice(0, 3).forEach((source) => {
+  const sources = options.sources ?? item.sources ?? STREAMING_SAMPLES;
+  sources.slice(0, 3).forEach((source) => {
     const pill = document.createElement('span');
     pill.className = 'streaming-pill';
     pill.textContent = source.name;
@@ -235,15 +264,7 @@ async function fetchWatchmode(path, useFallback = false) {
 async function fetchTrending() {
   try {
     const data = await fetchWatchmode('/list-titles/?sort_by=popularity_desc&page=1&limit=12');
-    return (data.results || data.title_results || []).map((item) => ({
-      id: item.id,
-      name: item.name || item.title || item.title_name,
-      poster: item.poster || item.image || item.backdrop || `https://via.placeholder.com/400x600?text=${encodeURIComponent(item.name || item.title)}`,
-      type: item.type || 'movie',
-      year: item.release_year || item.year || 'TBD',
-      rating: 4,
-      overview: item.overview || item.plot_overview || '',
-    })).slice(0, 8);
+    return (data.titles || data.results || data.title_results || []).map((item) => normalizeTitle(item)).slice(0, 8);
   } catch (error) {
     console.warn(error.message);
     return SAMPLE_TITLES;
@@ -259,14 +280,18 @@ async function searchTitles(query) {
   setStatus('Searching titles...');
   try {
     const data = await fetchWatchmode(`/search/?search_field=name&search_value=${encodeURIComponent(query)}&types=movie,tv_movie,tv_series`);
-    const results = (data.results || []).map((item) => ({
-      id: item.id,
-      name: item.name || item.title || item.title_name,
-      poster: item.poster || item.image || `https://via.placeholder.com/400x600?text=${encodeURIComponent(item.name || item.title)}`,
-      type: item.type || 'movie',
-      year: item.release_year || item.year || 'TBD',
-      rating: 4,
-      overview: item.overview || item.plot_overview || '',
+    const results = await Promise.all((data.title_results || data.results || []).slice(0, SEARCH_RESULT_LIMIT).map(async (item) => {
+      const normalized = normalizeTitle(item);
+      const [details, sources] = await Promise.all([
+        fetchTitleDetails(item.id, normalized),
+        fetchSources(item.id),
+      ]);
+
+      return {
+        ...normalized,
+        ...details,
+        sources,
+      };
     }));
 
     clearStatus();
@@ -278,31 +303,45 @@ async function searchTitles(query) {
   }
 }
 
-async function fetchTitleDetails(id) {
+async function fetchTitleDetails(id, fallbackItem = null) {
   try {
     const data = await fetchWatchmode(`/title/${id}/details/`);
     return {
       id: data.id,
-      name: data.title || data.name,
-      poster: data.poster || data.image || `https://via.placeholder.com/400x600?text=${encodeURIComponent(data.title || data.name)}`,
-      type: data.type || 'movie',
-      year: data.year || data.release_year || 'TBD',
-      rating: data.user_rating || 4,
-      genres: data.genres?.map((genre) => genre.name) || [],
-      overview: data.plot_overview || data.overview || '',
+      name: data.title || data.name || fallbackItem?.name || 'Untitled',
+      poster:
+        data.poster ||
+        data.poster_url ||
+        data.image ||
+        data.image_url ||
+        buildPosterUrl(data.title || data.name || fallbackItem?.name),
+      type: data.type || fallbackItem?.type || 'movie',
+      year: data.year || data.release_year || fallbackItem?.year || 'TBD',
+      rating: data.user_rating || data.rating || fallbackItem?.rating || 4,
+      genres: data.genres?.map((genre) => genre.name) || fallbackItem?.genres || [],
+      overview: data.plot_overview || data.overview || fallbackItem?.overview || '',
       runtime: data.runtime_minutes || data.length || null,
       releaseDate: data.release_date || null,
     };
   } catch (error) {
     console.warn(error.message);
-    return SAMPLE_TITLES.find((item) => item.id === Number(id)) || SAMPLE_TITLES[0];
+    return fallbackItem || SAMPLE_TITLES.find((item) => item.id === Number(id)) || {
+      id: Number(id),
+      name: 'Untitled',
+      poster: buildPosterUrl('Untitled'),
+      type: 'movie',
+      year: 'TBD',
+      rating: 4,
+      genres: [],
+      overview: '',
+    };
   }
 }
 
 async function fetchSources(id) {
   try {
     const data = await fetchWatchmode(`/title/${id}/sources/?region=US`);
-    return data.sources?.slice(0, 4).map((source) => ({
+    return data.sources?.slice(0, STREAMING_RESULT_LIMIT).map((source) => ({
       name: source.name,
       type: source.type,
       url: source.deeplink_android || source.deeplink_ios || source.web_url || '',
